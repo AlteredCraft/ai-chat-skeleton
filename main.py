@@ -5,9 +5,36 @@ from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 import os
 import sys
-from logger import logger
+import logging
 
 load_dotenv()
+
+# Configure logging
+log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(
+    level=getattr(logging, log_level, logging.INFO),
+    format="[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+
+# Configure warnings and errors to go to stderr
+class StderrFilter(logging.Filter):
+    def filter(self, record):
+        return record.levelno >= logging.WARNING
+
+stderr_handler = logging.StreamHandler(sys.stderr)
+stderr_handler.setLevel(logging.WARNING)
+stderr_handler.setFormatter(logging.Formatter("[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s", "%Y-%m-%d %H:%M:%S"))
+stderr_handler.addFilter(StderrFilter())
+
+# Update root logger to route warnings/errors to stderr
+logging.root.handlers[0].addFilter(lambda record: record.levelno < logging.WARNING)
+logging.root.addHandler(stderr_handler)
+
+logger = logging.getLogger("app")
 
 # Log startup information
 logger.info("Starting application")
@@ -26,7 +53,7 @@ class ChatRequest(BaseModel):
 
 @app.post("/chat")
 def chat(request: ChatRequest):
-    logger.info("Received chat request", num_messages=len(request.messages))
+    logger.info(f"Received chat request | num_messages={len(request.messages)}")
     logger.debug(f"Chat messages: {request.messages}")
 
     try:
