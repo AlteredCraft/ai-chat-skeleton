@@ -138,6 +138,22 @@ def chat(request: ChatRequest):
         logger.error(f"Error processing chat request: {str(e)}")
         raise
 
+@app.get("/env")
+def get_env():
+    """Return environment variables for display in console."""
+    logger.debug("Serving environment variables")
+    env_vars = {
+        "ANTHROPIC_MODEL": ANTHROPIC_MODEL,
+        "ANTHROPIC_MAX_TOKENS": ANTHROPIC_MAX_TOKENS,
+        "ANTHROPIC_TEMPERATURE": ANTHROPIC_TEMPERATURE,
+        "ANTHROPIC_TOP_P": ANTHROPIC_TOP_P,
+        "ANTHROPIC_TOP_K": ANTHROPIC_TOP_K,
+        "ANTHROPIC_SYSTEM_PROMPT": ANTHROPIC_SYSTEM_PROMPT[:50] + "..." if ANTHROPIC_SYSTEM_PROMPT and len(ANTHROPIC_SYSTEM_PROMPT) > 50 else ANTHROPIC_SYSTEM_PROMPT,
+        "ANTHROPIC_STOP_SEQUENCES": ANTHROPIC_STOP_SEQUENCES,
+        "LOG_LEVEL": log_level,
+    }
+    return env_vars
+
 @app.get("/")
 def read_root():
     logger.debug("Serving index.html")

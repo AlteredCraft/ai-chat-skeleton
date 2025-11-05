@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Gemini Chat</title>
+    <title>LLM Chat</title>
     <style>
         body {
             font-family: sans-serif;
@@ -96,11 +96,102 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        /* Doom Console Styles */
+        #console-toggle {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #00ff00;
+            border: 2px solid #00ff00;
+            border-radius: 4px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            margin: 0;
+            line-height: 1;
+            font-family: 'Courier New', monospace;
+        }
+        #console-toggle:hover {
+            background-color: rgba(0, 200, 0, 0.3);
+            box-shadow: 0 0 10px #00ff00;
+        }
+        #doom-console {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50%;
+            background-color: rgba(20, 20, 20, 0.95);
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            padding: 20px;
+            overflow-y: auto;
+            z-index: 1000;
+            border-bottom: 3px solid #00ff00;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+            transform: translateY(-100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        #doom-console.active {
+            transform: translateY(0);
+        }
+        #doom-console .console-header {
+            color: #ffff00;
+            font-size: 18px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 5px #ffff00;
+        }
+        #doom-console .env-line {
+            margin: 5px 0;
+            padding: 2px 0;
+            line-height: 1.6;
+        }
+        #doom-console .env-key {
+            color: #ffff00;
+            font-weight: bold;
+        }
+        #doom-console .env-value {
+            color: #00ff00;
+        }
+        #doom-console .env-null {
+            color: #666;
+            font-style: italic;
+        }
+        #doom-console::-webkit-scrollbar {
+            width: 10px;
+        }
+        #doom-console::-webkit-scrollbar-track {
+            background: #111;
+        }
+        #doom-console::-webkit-scrollbar-thumb {
+            background: #00ff00;
+            border: 1px solid #003300;
+        }
     </style>
 </head>
 <body>
+    <!-- Doom Console Toggle Button -->
+    <button id="console-toggle" onclick="toggleConsole()">+</button>
+
+    <!-- Doom Console Overlay -->
+    <div id="doom-console">
+        <div class="console-header">▼ System Configuration ▼</div>
+        <div id="console-content">Loading environment variables...</div>
+    </div>
+
     <div id="chat-container">
-        <h1>Gemini Chat</h1>
+        <h1>LLM Chat</h1>
         <div id="chat-messages"></div>
         <div id="input-area">
             <input type="text" id="message" placeholder="Enter your message" onkeydown="if(event.key === 'Enter') sendMessage()">
@@ -110,6 +201,45 @@
 
     <script>
         let conversation = [];
+        let consoleLoaded = false;
+
+        // Doom Console Functions
+        async function toggleConsole() {
+            const console = document.getElementById('doom-console');
+            const isActive = console.classList.toggle('active');
+
+            // Load environment variables on first open
+            if (isActive && !consoleLoaded) {
+                await loadEnvironmentVariables();
+                consoleLoaded = true;
+            }
+        }
+
+        async function loadEnvironmentVariables() {
+            const consoleContent = document.getElementById('console-content');
+            try {
+                const response = await fetch('/env');
+                const envVars = await response.json();
+
+                let html = '';
+                for (const [key, value] of Object.entries(envVars)) {
+                    html += '<div class="env-line">';
+                    html += `<span class="env-key">${key}</span>: `;
+                    if (value === null || value === undefined) {
+                        html += '<span class="env-null">null</span>';
+                    } else if (typeof value === 'object') {
+                        html += `<span class="env-value">${JSON.stringify(value)}</span>`;
+                    } else {
+                        html += `<span class="env-value">${value}</span>`;
+                    }
+                    html += '</div>';
+                }
+                consoleContent.innerHTML = html;
+            } catch (error) {
+                consoleContent.innerHTML = '<div class="env-line" style="color: #ff0000;">ERROR: Failed to load environment variables</div>';
+                console.error('Error loading environment variables:', error);
+            }
+        }
 
         async function sendMessage() {
             const messageInput = document.getElementById('message');
